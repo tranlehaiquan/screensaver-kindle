@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kindle Screensaver Studio — Custom E-Ink Image Converter</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div class="app-layout">
+      <!-- Top Header Navigation -->
+      <header class="app-header">
+        <div class="header-brand">
+          <div class="brand-logo">
+            <span class="logo-icon">📖</span>
+          </div>
+          <div class="brand-text">
+            <h1 class="brand-title">Kindle Screensaver Studio</h1>
+            <span class="brand-subtitle">High-fidelity 16-level E-Ink dithering & precision cropper</span>
+          </div>
+        </div>
+
+        <div class="header-device-selector">
+          <div class="device-select-wrapper">
+            <label for="select-device" class="control-label">Target Kindle Model</label>
+            <div class="custom-select-container">
+              <select id="select-device" class="select-input">
+                <!-- Injected dynamically from KINDLE_DEVICES -->
+              </select>
+            </div>
+          </div>
+
+          <div class="device-spec-card" id="device-spec-display">
+            <span class="spec-dim" id="spec-dim-text">1236 × 1648</span>
+            <span class="spec-detail" id="spec-ppi-text">300 PPI • 6.8"</span>
+          </div>
+
+          <!-- Custom Dimension inputs if Custom is selected -->
+          <div class="custom-dim-inputs" id="custom-dim-group" style="display: none;">
+            <input type="number" id="custom-width" min="100" max="4000" value="1236" placeholder="W" />
+            <span>×</span>
+            <input type="number" id="custom-height" min="100" max="4000" value="1648" placeholder="H" />
+          </div>
+
+          <!-- Orientation Switcher -->
+          <div class="orientation-switch" title="Toggle Portrait / Landscape">
+            <button type="button" class="btn-toggle active" id="btn-orient-portrait" title="Portrait Mode">
+              <span>▯</span> Portrait
+            </button>
+            <button type="button" class="btn-toggle" id="btn-orient-landscape" title="Landscape Mode">
+              <span>▭</span> Landscape
+            </button>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button type="button" class="btn-secondary" id="btn-open-samples" title="Pick from sample artworks">
+            <span>✨</span> Sample Art
+          </button>
+          <button type="button" class="btn-ghost" id="btn-open-guide" title="Kindle screensaver instructions">
+            <span>❓</span> Setup Guide
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Workspace: Split into Left Studio & Right Preview -->
+      <main class="app-main">
+        <!-- Left Column: Source Image, Interactive Cropper & E-Ink Adjustments -->
+        <section class="workbench-panel">
+          <!-- Source Upload / Drop Area -->
+          <div class="upload-dropzone" id="drop-zone">
+            <input type="file" id="file-input" accept="image/*" class="file-input-hidden" multiple />
+            <div class="dropzone-content">
+              <div class="drop-icon">🖼️</div>
+              <div class="drop-info">
+                <span class="drop-headline">Drop your image here or <strong class="highlight-text">Browse</strong></span>
+                <span class="drop-subtext">Supports PNG, JPG, WEBP, AVIF, SVG (Auto 16-gray dithering)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabbed Controls for Cropper & Dithering -->
+          <div class="control-sections">
+            <!-- Cropper Controls Accordion -->
+            <div class="control-group">
+              <div class="group-header">
+                <h3>✂️ Crop & Geometry</h3>
+                <div class="group-header-actions">
+                  <button type="button" class="btn-icon" id="btn-rotate-ccw" title="Rotate Counter-Clockwise 90°">↺</button>
+                  <button type="button" class="btn-icon" id="btn-rotate-cw" title="Rotate Clockwise 90°">↻</button>
+                  <button type="button" class="btn-icon" id="btn-flip-h" title="Flip Horizontal">⇆</button>
+                  <button type="button" class="btn-icon" id="btn-flip-v" title="Flip Vertical">⇅</button>
+                </div>
+              </div>
+
+              <!-- Interactive Cropping Canvas -->
+              <div class="cropper-viewport">
+                <canvas id="crop-canvas" width="600" height="500"></canvas>
+                <div class="cropper-hud">
+                  <div class="hud-item">Drag to Pan • Wheel to Zoom • Corners to Resize</div>
+                </div>
+              </div>
+
+              <!-- Quick Fit Modes -->
+              <div class="fit-mode-selector">
+                <span class="selector-label">Fit Mode:</span>
+                <div class="btn-group">
+                  <button type="button" class="btn-chip active" data-fit="cover" id="fit-cover" title="Fill full Kindle screen">
+                    Cover / Fill
+                  </button>
+                  <button type="button" class="btn-chip" data-fit="contain-white" id="fit-white" title="Fit full image with white borders">
+                    Fit (White Matte)
+                  </button>
+                  <button type="button" class="btn-chip" data-fit="contain-black" id="fit-black" title="Fit full image with black borders">
+                    Fit (Black Matte)
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- E-Ink Dithering & Shading Studio -->
+            <div class="control-group">
+              <div class="group-header">
+                <h3>⚡ E-Ink Dithering & Tuning</h3>
+                <button type="button" class="btn-link btn-xs" id="btn-reset-filters">Reset Defaults</button>
+              </div>
+
+              <!-- Algorithm Selection Grid -->
+              <div class="filter-row">
+                <label for="select-algorithm" class="control-label">Dithering Engine</label>
+                <div class="custom-select-container">
+                  <select id="select-algorithm" class="select-input">
+                    <option value="floyd-steinberg" selected>Floyd-Steinberg (Balanced & Natural - Recommended)</option>
+                    <option value="atkinson">Atkinson (Crisp Mac-Style, High Contrast & Clean Whites)</option>
+                    <option value="sierra-3">Sierra-3 (Smooth Diffusion)</option>
+                    <option value="sierra-2">Two-Row Sierra (Fast Smooth)</option>
+                    <option value="sierra-lite">Sierra Lite (Soft Noise)</option>
+                    <option value="burkes">Burkes (Clean Halftone)</option>
+                    <option value="jjn">Jarvis, Judice & Ninke (Ultra-Fine Gradients)</option>
+                    <option value="stucki">Stucki (Detailed Contrast)</option>
+                    <option value="bayer-4">Ordered Bayer 4×4 Matrix (Retro Halftone)</option>
+                    <option value="bayer-8">Ordered Bayer 8×8 Matrix (Detailed Pattern)</option>
+                    <option value="none">Direct 16-Level Quantization (No Dither / Posterized)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Sliders for Adjustment -->
+              <div class="sliders-grid">
+                <!-- Dither Strength -->
+                <div class="slider-field">
+                  <div class="slider-label-row">
+                    <span>Dither Intensity</span>
+                    <span class="slider-val" id="val-dither">100%</span>
+                  </div>
+                  <input type="range" id="slider-dither" min="0" max="100" value="100" />
+                </div>
+
+                <!-- Brightness -->
+                <div class="slider-field">
+                  <div class="slider-label-row">
+                    <span>Brightness</span>
+                    <span class="slider-val" id="val-brightness">0</span>
+                  </div>
+                  <input type="range" id="slider-brightness" min="-100" max="100" value="0" />
+                </div>
+
+                <!-- Contrast -->
+                <div class="slider-field">
+                  <div class="slider-label-row">
+                    <span>Contrast</span>
+                    <span class="slider-val" id="val-contrast">0</span>
+                  </div>
+                  <input type="range" id="slider-contrast" min="-100" max="100" value="0" />
+                </div>
+
+                <!-- Gamma -->
+                <div class="slider-field">
+                  <div class="slider-label-row">
+                    <span>Gamma Curve</span>
+                    <span class="slider-val" id="val-gamma">1.0</span>
+                  </div>
+                  <input type="range" id="slider-gamma" min="0.4" max="2.4" step="0.05" value="1.0" />
+                </div>
+
+                <!-- Sharpness (Unsharp Mask) -->
+                <div class="slider-field">
+                  <div class="slider-label-row">
+                    <span>E-Ink Sharpness</span>
+                    <span class="slider-val" id="val-sharpness">25%</span>
+                  </div>
+                  <input type="range" id="slider-sharpness" min="0" max="100" value="25" />
+                </div>
+
+                <!-- Color Depth Mode -->
+                <div class="slider-field">
+                  <div class="slider-label-row">
+                    <span>Color Depth</span>
+                    <span class="slider-val" id="val-depth">16 Grays</span>
+                  </div>
+                  <div class="btn-group full-width">
+                    <button type="button" class="btn-chip active" data-depth="16" id="depth-16">
+                      16-Level Grayscale (Kindle)
+                    </button>
+                    <button type="button" class="btn-chip" data-depth="2" id="depth-2">
+                      1-Bit Pure B&W (Manga)
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Toggles -->
+              <div class="toggles-row">
+                <label class="toggle-control">
+                  <input type="checkbox" id="chk-invert" />
+                  <span class="toggle-text">🌙 Invert (Dark Mode)</span>
+                </label>
+                <label class="toggle-control">
+                  <input type="checkbox" id="chk-autolevels" />
+                  <span class="toggle-text">✨ Auto Histogram Stretch</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Column: Live Kindle Multi-view & Export Studio -->
+        <section class="preview-panel">
+          <!-- Preview Container Component rendered by KindlePreviewer -->
+          <div class="preview-box" id="preview-container">
+            <!-- Dynamic Previewer DOM mounted here -->
+          </div>
+
+          <!-- Bottom Export Action Bar -->
+          <div class="export-bar">
+            <div class="export-meta">
+              <span class="export-tag" id="export-res-tag">1236 × 1648 px</span>
+              <span class="export-tag" id="export-size-tag">PNG • ~150 KB</span>
+              <span class="export-speed" id="export-render-time">⚡ 12ms</span>
+            </div>
+
+            <div class="export-buttons">
+              <button type="button" class="btn-secondary" id="btn-copy-clipboard" title="Copy Kindle Screensaver to clipboard">
+                <span>📋</span> Copy Image
+              </button>
+              <button type="button" class="btn-primary btn-large" id="btn-export-png" title="Download Kindle Native PNG screensaver">
+                <span>📥</span> Download Screensaver (PNG)
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Bottom Dock: Batch Queue / Gallery Tray -->
+      <footer class="app-batch-dock" id="batch-manager-container">
+        <!-- Dynamic Batch DOM mounted here -->
+      </footer>
+    </div>
+
+    <!-- Samples Modal -->
+    <div id="samples-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-icon">🎨</span>
+            <h3>Sample Screensaver Artworks</h3>
+          </div>
+          <button type="button" class="btn-close" id="btn-close-samples">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="samples-grid" id="samples-list">
+            <!-- Injected dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
