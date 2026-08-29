@@ -9,7 +9,11 @@ import { KindlePreviewer } from "./preview.js";
 import { BatchManager } from "./batch.js";
 import { SAMPLE_IMAGES, getSampleDataUrl } from "./samples.js";
 import { openGuideModal } from "./guide.js";
+import { inject } from "@vercel/analytics";
 import confetti from "canvas-confetti";
+
+// Initialize Vercel Web Analytics
+inject();
 
 class KindleApp {
   constructor() {
